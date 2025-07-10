@@ -17,16 +17,30 @@ phases:
   post_build:
     commands:
       - echo "[POST_BUILD] Running Laravel migration via ECS RunTask..."
-      # - |
-      #   aws ecs run-task \
-      #     --cluster ${ECS_CLUSTER_NAME} \
-      #     --launch-type FARGATE \
-      #     --task-definition ${MIGRATION_TASK_DEFINITION} \
-      #     --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_ID_1},${SUBNET_ID_2}],securityGroups=[${SECURITY_GROUP_ID}],assignPublicIp=DISABLED}" \
-      #     --region ap-northeast-1
-
-      # - echo "[POST_BUILD] Writing imagedefinitions.json for ECS Deploy..."
-      # - printf '[{"name":"%s","imageUri":"%s:latest"}]' "$CONTAINER_NAME" "$REPOSITORY_URI" > imagedefinitions.json
+      - echo "[POST_BUILD] Creating new task definition revision..."
+      - |
+        aws ecs describe-task-definition \
+          --task-definition prod-laravel-task \
+          --query 'taskDefinition' \
+          --output json > task-definition.json
+      - |
+        jq --arg IMAGE_URI "${REPOSITORY_URI}:latest" \
+          '.containerDefinitions[0].image = $IMAGE_URI | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' \
+          task-definition.json > new-task-definition.json
+      - |
+        NEW_TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://new-task-definition.json \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+      - echo "New task definition ARN: $NEW_TASK_DEFINITION_ARN"
+      
+      - echo "[POST_BUILD] Updating ECS service..."
+      - |
+        aws ecs update-service \
+          --cluster arn:aws:ecs:ap-northeast-1:${AWS_ACCOUNT_ID}:cluster/larabel-cluster \
+          --service arn:aws:ecs:ap-northeast-1:${AWS_ACCOUNT_ID}:service/larabel-cluster/prod-laravel-task-service-vqkmsvuc \
+          --task-definition $NEW_TASK_DEFINITION_ARN
+      - echo "[POST_BUILD] Service update initiated"
 artifacts:
   files:
     - imagedefinitions.json
