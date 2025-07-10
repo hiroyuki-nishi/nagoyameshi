@@ -32,7 +32,7 @@ phases:
           --cli-input-json file://new-task-definition.json \
           --query 'taskDefinition.taskDefinitionArn' \
           --output text)
-      - echo "New task definition ARN: $NEW_TASK_DEFINITION_ARN"
+        echo "New task definition ARN: $NEW_TASK_DEFINITION_ARN"
       
       - echo "[POST_BUILD] Updating ECS service..."
       - |
