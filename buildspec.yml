@@ -13,7 +13,7 @@ phases:
       - docker tag ${CONTAINER_NAME} ${REPOSITORY_URI}:latest
       - echo "[BUILD] Pushing image to ECR..."
       - docker push ${REPOSITORY_URI}:latest
-
+  # TODO: うまくいかなかったら、ローカルから上から順次実行して確かめてみる
   post_build:
     commands:
       - echo "[POST_BUILD] Running Laravel migration via ECS RunTask..."

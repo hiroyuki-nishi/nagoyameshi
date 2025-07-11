@@ -63,12 +63,23 @@ push → CodePipeline → デプロイ の自動化を前提としています
 
 ---------------------
 # ローカルでの構築
-Dockerビルド
+- 1. ECRにログイン
+aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin xxxx.dkr.ecr.ap-northeast-1.amazonaws.com
+
+- 2. Dockerビルド
+```
 docker build -t laravel-nagoyameshi . -f Dockerfile.deployment
 
 ARM版
 docker build --platform linux/amd64 -t laravel-nagoyameshi . -f Dockerfile.deployment
+```
 
+- 3. ECRにPUSH
+```
+docker tag laravel-nagoyameshi:latest xxxxx.dkr.ecr.ap-northeast-1.amazonaws.com/laravel-nagoyameshi:latest
+docker push xxxx.dkr.ecr.ap-northeast-1.amazonaws.com/laravel-nagoyameshi:latest
+```
+  
 
 # ✅ ECS enable-execute-command有効化
 aws ecs update-service \
@@ -161,7 +172,7 @@ aws ecs execute-command \
   --command "/bin/sh"
 ```
 
-### ステップ4: コンテナ内での調査
+### ステップ3: コンテナ内での調査
 入れたら、以下のコマンドでディレクトリ構成やファイルの有無を確認します。
 ```
 # 現状
